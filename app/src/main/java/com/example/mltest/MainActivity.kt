@@ -1,14 +1,18 @@
 package com.example.mltest
 
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.Image
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
+import android.view.ViewTreeObserver
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
@@ -31,12 +35,28 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val REQUEST_CAMERA_PERMISSION = 1001
+        /*
+        const val KEY_IMAGE_URI = "com.example.mltest.KEY_IMAGE_URI"
+        const val KEY_IMAGE_MAX_WIDTH = "com.example.mltest.KEY_IMAGE_MAX_WIDTH"
+        const val KEY_IMAGE_MAX_HEIGHT = "com.example.mltest.KEY_IMAGE_MAX_HEIGHT"
+        const val KEY_SELECTED_SIZE = "com.example.mltest.KEY_SELECTED_SIZE"
+        */
     }
 
     lateinit var binding: ActivityMainBinding
     lateinit var detector: ObjectDetector
     lateinit var labeler: ImageLabeler
+
     lateinit var recognizer: TextRecognizer
+
+    var imageUri: Uri? = null
+
+    /*
+    var preview: ImageView? = null
+    var imageUri: Uri? = null
+    var imageMaxWidth = 0
+    var imageMaxHeight = 0
+    */
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,15 +82,44 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.btnOpenCamera.setOnClickListener {
+
+
             val intentPhoto = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            intentPhoto.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
+
             resultLauncher.launch(intentPhoto)
+
             //ActivityResultContracts.StartActivityForResult()
+            //startCameraIntentForResult()
+        }
+        /*
+        if (savedInstanceState != null) {
+            imageUri = savedInstanceState.getParcelable(KEY_IMAGE_URI)
+            imageMaxWidth = savedInstanceState.getInt(KEY_IMAGE_MAX_WIDTH)
+            imageMaxHeight = savedInstanceState.getInt(KEY_IMAGE_MAX_HEIGHT)
+            //selectedSize = savedInstanceState.getString(KEY_SELECTED_SIZE)
         }
 
+        val rootView = findViewById<View>(R.id.root)
+        rootView.viewTreeObserver.addOnGlobalLayoutListener(
+            object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    rootView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    imageMaxWidth = rootView.width
+                    imageMaxHeight = rootView.height
+
+                    /*
+                    if (SIZE_SCREEN == selectedSize) {
+                        tryReloadAndDetectInImage()
+                    }
+                     */
+                }
+            })
+        */
         binding.btnEval.setOnClickListener {
             //use ML Kit model to evaluate image
-            if (uploadBitmap != null) {
-                var image = InputImage.fromBitmap(uploadBitmap!!,0)
+            if (imageBitmap != null) {
+                var image = InputImage.fromBitmap(imageBitmap!!,0)
                 /*
                 detector.process(image)
                     .addOnSuccessListener { detectedObjects ->
@@ -118,12 +167,15 @@ class MainActivity : AppCompatActivity() {
                         //binding.tvGuess.text = recognizedText.text
                         binding.tvGuess.text = ""
                         for (block in recognizedText.textBlocks) {
-                        //    val blockText = block.text
+                            val blockText = block.text
+                            binding.tvGuess.append("${blockText.toString()} \n")
                         //    val blockCornerPoints = block.cornerPoints
                         //    val blockFrame = block.boundingBox
+                        /*
                             for (line in block.lines) {
                                 val lineText = line.text
-                                binding.tvGuess.append("${line.toString()} \n")
+                                binding.tvGuess.append("${lineText.toString()} \n")
+
                             //    val lineCornerPoints = line.cornerPoints
                             //    val lineFrame = line.boundingBox
                             //    for (element in line.elements) {
@@ -132,6 +184,7 @@ class MainActivity : AppCompatActivity() {
                             //        val elementFrame = element.boundingBox
                             //    }
                             }
+                            */
                         }
 
                     }
@@ -147,15 +200,18 @@ class MainActivity : AppCompatActivity() {
         requestNeededPermission()
     }
 
-    var uploadBitmap: Bitmap? = null
+    var imageBitmap: Bitmap? = null
     var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             result ->
         if (result.resultCode == Activity.RESULT_OK){
             val data: Intent? = result.data
-            uploadBitmap = data!!.extras!!.get("data") as Bitmap
-            binding.ivPreview.setImageBitmap(uploadBitmap)
+            imageBitmap = data!!.extras!!.get("data") as Bitmap
+            imageUri = data!!.extras!!.get("imageUri") as Uri
+            binding.ivPreview.setImageBitmap(imageBitmap)
             binding.ivPreview.visibility = View.VISIBLE
         }
+
+
     }
 
 
@@ -189,7 +245,52 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /*
+    private fun startCameraIntentForResult() { // Clean up last time's image
+        imageUri = null
+        preview!!.setImageBitmap(null)
+        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        if (takePictureIntent.resolveActivity(packageManager) != null) {
 
+            val values = ContentValues()
+
+            values.put(MediaStore.Images.Media.TITLE, "New Picture")
+            values.put(MediaStore.Images.Media.DESCRIPTION, "From Camera")
+
+            imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
+            /*
+            startActivityForResult(
+                takePictureIntent,
+                REQUEST_CAMERA_PERMISSION
+            )
+            */
+            resultLauncher.launch(takePictureIntent)
+        }
+    }
+
+    public override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable(
+            KEY_IMAGE_URI,
+            imageUri
+        )
+        outState.putInt(
+            KEY_IMAGE_MAX_WIDTH,
+            imageMaxWidth
+        )
+        outState.putInt(
+            KEY_IMAGE_MAX_HEIGHT,
+            imageMaxHeight
+        )
+        /*
+        outState.putString(
+            KEY_SELECTED_SIZE,
+            selectedSize
+        )
+         */
+    }
+    */
 
     override fun onResume() {
         super.onResume()
